@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<data>
+    <xpath expr="/form/field[@name='carrier_cost_method']" position="after">
+        <newline/>
+        <group id='dhl_de_config' string="DHL Configuration"
+            states="{'invisible': Not(Eval('carrier_cost_method') == 'dhl_de')}"
+            colspan="4">
+          <label name="dhl_de_username"/>
+          <field name="dhl_de_username"/>
+          <label name="dhl_de_password"/>
+          <field name="dhl_de_password"/>
+          <label name="dhl_de_environment"/>
+          <field name="dhl_de_environment"/>
+          <newline/>
+          <button string="Test Connection" name="test_dhl_de_credentials" colspan='4'/>
+        </group>
+    </xpath>
+</data>

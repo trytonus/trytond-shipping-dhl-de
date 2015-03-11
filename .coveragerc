@@ -1,0 +1,5 @@
+[run]
+source = trytond.modules.shipping_dhl_de_bc
+
+[report]
+omit = */tests/*, */setup.py
