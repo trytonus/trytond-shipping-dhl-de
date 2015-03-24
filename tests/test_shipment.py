@@ -36,6 +36,7 @@ class TestDHLDEShipment(unittest.TestCase):
         trytond.tests.test_tryton.install_module('shipping_dhl_de')
         self.Address = POOL.get('party.address')
         self.Sale = POOL.get('sale.sale')
+        self.SaleLine = POOL.get('sale.line')
         self.SaleConfig = POOL.get('sale.configuration')
         self.Product = POOL.get('product.product')
         self.Uom = POOL.get('product.uom')
@@ -357,25 +358,36 @@ class TestDHLDEShipment(unittest.TestCase):
         with Transaction().set_context(company=self.company.id):
 
             # Create sale order
-            sale, = self.Sale.create([{
+            sale_line = self.SaleLine(**{
+                'type': 'line',
+                'quantity': 1,
+                'product': self.product,
+                'unit_price': Decimal('10.00'),
+                'description': 'Test Description1',
+                'unit': self.product.template.default_uom,
+            })
+            sale = self.Sale(**{
                 'reference': 'S-1001',
                 'payment_term': self.payment_term,
                 'party': party.id,
                 'invoice_address': party.addresses[0].id,
                 'shipment_address': party.addresses[0].id,
                 'carrier': self.carrier.id,
-                'dhl_de_product_code': 'EPN',
-                'lines': [
-                    ('create', [{
-                        'type': 'line',
-                        'quantity': 1,
-                        'product': self.product,
-                        'unit_price': Decimal('10.00'),
-                        'description': 'Test Description1',
-                        'unit': self.product.template.default_uom,
-                    }]),
-                ]
-            }])
+                'lines': [sale_line],
+            })
+            if self.company.party.addresses[0].country != \
+                    sale.shipment_address.country:
+                # International
+                sale.dhl_de_product_code = 'BPI'
+                sale.dhl_de_export_type = '0'
+                sale.dhl_de_export_type_description = 'Export Description'
+                sale.dhl_de_terms_of_trade = 'DDP'
+            else:
+                # Domestic
+                sale.dhl_de_product_code = 'EPN'
+
+            sale.save()
+
             self.assertTrue(
                 self.Sale(sale.id).on_change_carrier()['is_dhl_de_shipping']
             )
@@ -472,6 +484,7 @@ class TestDHLDEShipment(unittest.TestCase):
                 generate_label.start.carrier = result['carrier']
 
                 result = generate_label.default_dhl_de_config({})
+                print result
 
                 self.assertEqual(
                     result['product_code'], shipment.dhl_de_product_code
@@ -498,7 +511,6 @@ class TestDHLDEShipment(unittest.TestCase):
                 ], count=True) > 0
             )
 
-    @unittest.skip('International shipment is not implemented')
     def test_0030_generate_dhl_de_international_labels(self):
         """Test case to generate DHL DE labels for international shipments.
         """

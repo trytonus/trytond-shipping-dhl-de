@@ -136,6 +136,8 @@ class Carrier:
         try:
             response = client.service.createShipmentDD(version, shipment_orders)
         except WebFault, exc:  # pragma: no cover
+            print client.last_sent()
+            print client.last_received()
             self.raise_user_error(exc.fault)
         return response
 
