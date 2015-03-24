@@ -29,6 +29,22 @@ DHL_DE_PRODUCTS = [
     ('RPN', 'Regional Paket AT'),
 ]
 
+DHL_DE_EXPORT_TYPES = [
+    (None, ''),
+    ('0', 'Other'),
+    ('1', 'Gift'),
+    ('2', 'Sample'),
+    ('3', 'Documents'),
+    ('4', 'Goods Return'),
+]
+
+DHL_DE_INCOTERMS = [
+    (None, ''),
+    ('DDU', 'DDU'),
+    ('CIP', 'CIP'),
+    ('DDP', 'DDP'),
+]
+
 
 class Sale:
     "Sale"
@@ -43,6 +59,15 @@ class Sale:
         DHL_DE_PRODUCTS, 'DHL DE Product Code', states=STATES, depends=[
             'state', 'is_dhl_de_shipping'
         ]
+    )
+    dhl_de_export_type = fields.Selection(
+        DHL_DE_EXPORT_TYPES, 'DHL DE Export Type'
+    )
+    dhl_de_export_type_description = fields.Char(
+        'Export Type Description'
+    )
+    dhl_de_terms_of_trade = fields.Selection(
+        DHL_DE_INCOTERMS, 'Terms of Trade (incoterms)',
     )
 
     def get_is_dhl_de_shipping(self, name):
@@ -74,5 +99,9 @@ class Sale:
 
         if Shipment == ShipmentOut and self.is_dhl_de_shipping:
             shipment.dhl_de_product_code = self.dhl_de_product_code
+            shipment.dhl_de_export_type = self.dhl_de_export_type
+            shipment.dhl_de_export_type_description = \
+                self.dhl_de_export_type_description
+            shipment.dhl_de_terms_of_trade = self.dhl_de_terms_of_trade
 
         return shipment

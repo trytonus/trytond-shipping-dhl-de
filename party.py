@@ -54,7 +54,7 @@ class Address:
             elif country == 'GB':  # pragma: no cover
                 # TODO: Cover this in international shipping
                 zip_type.england = self.zip
-            else:  # pragma: no cover
+            else:
                 zip_type.other = self.zip
 
             address.Zip = zip_type

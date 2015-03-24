@@ -25,8 +25,7 @@ ENCODING = "UTF8";
 MAJOR_RELEASE = "1";
 MINOR_RELEASE = "0";
 SDF = 'Y-m-d';
-DD_PROD_CODE = "EPN";
-TD_PROD_CODE = "WPX";
+DD_PROD_CODE = "BPI";
 TEST_EKP = "5000000008";
 PARTNER_ID = "01";
 SHIPMENT_DESC = "Interessanter Artikel";
@@ -122,7 +121,7 @@ def create_version():
 def create_default_shipment_item_dd_type():
     shipment_item = client.factory.create('ns0:ShipmentItemDDType')
     shipment_item.HeightInCM = '15'
-    shipment_item.LengthInCM = '30'
+    shipment_item.LengthInCM = '50'
     shipment_item.WeightInKG = '3'
     shipment_item.WidthInCM = '30'
     shipment_item.PackageType = 'PK'
@@ -171,6 +170,10 @@ def create_shipment_details_dd_type():
     shipment_details.ShipmentItem.append(
         create_default_shipment_item_dd_type()
     )
+
+    shipment_details.Service = {
+        'ServiceGroupBusinessPackInternational': dd_service_type_ecnomy()
+    }
     return shipment_details
 
 
@@ -181,6 +184,7 @@ def as_dhl_de_address(mode='shipper'):
     address = client.factory.create('ns1:NativeAddressType')
     if mode == 'shipper':
         address.streetName = SHIPPER_STREET
+        address.streetNumber = SHIPPER_STREETNR
 
         zip_type = client.factory.create("ns1:ZipType")
         zip_type.germany = SHIPPER_ZIP
@@ -193,18 +197,30 @@ def as_dhl_de_address(mode='shipper'):
         address.Origin = country
 
     elif mode == 'receiver':
-        address.streetName = RECEIVER_LOCAL_STREET
-        address.streetNumber = RECEIVER_LOCAL_STREETNR
+        #address.streetName = RECEIVER_LOCAL_STREET
+        #address.streetNumber = RECEIVER_LOCAL_STREETNR
+
+        #zip_type = client.factory.create("ns1:ZipType")
+        #zip_type.germany = RECEIVER_LOCAL_ZIP
+        #address.Zip = zip_type
+
+        #address.city = RECEIVER_LOCAL_CITY
+
+        #country = client.factory.create('ns1:CountryType')
+        #country.countryISOCode = RECEIVER_LOCAL_COUNTRY_CODE
+        #address.Origin = country
+
+        address.streetName = RECEIVER_WWIDE_STREET
+        address.streetNumber = RECEIVER_WWIDE_STREETNR
 
         zip_type = client.factory.create("ns1:ZipType")
-        zip_type.germany = RECEIVER_LOCAL_ZIP
+        zip_type.other = RECEIVER_WWIDE_ZIP
         address.Zip = zip_type
 
-        address.city = RECEIVER_LOCAL_CITY
+        address.city = RECEIVER_WWIDE_CITY
 
         country = client.factory.create('ns1:CountryType')
-        country.countryISOCode = RECEIVER_LOCAL_COUNTRY_CODE
-        country.state = u'Baden-Wrttemberg'[:9]
+        country.countryISOCode = RECEIVER_WWIDE_COUNTRY_CODE
         address.Origin = country
 
     return address
@@ -254,28 +270,78 @@ def create_receiver():
     receiver_type.Communication = comm_type
     return receiver_type
 
+def dd_service_type_ecnomy():
+    service_type = client.factory.create(
+        'ns0:DDServiceGroupBusinessPackInternationalType'
+    )
+    service_type.Economy = True
+    return service_type
+
+def export_doc_type():
+    """
+    Return `ExportDocumentDDType`
+    """
+    from datetime import datetime
+    export_type = client.factory.create('ns0:ExportDocumentDDType')
+    export_type.InvoiceType = 'commercial'
+    export_type.InvoiceDate = datetime.now().date().isoformat()
+
+    # Export type
+    #   (
+    #       "0"="other", "1"="gift", "2"="sample", "3"="documents",
+    #       "4"="goods return"
+    #   ) (depends on chosen product -> only mandatory for BPI).
+    #   Field length must be less than or equal to 40.
+    export_type.ExportType = '1'
+    #export_type.ExportTypeDescription = SHIPMENT_DESC
+
+    # Element provides terms of trades,
+    # i.e. incoterms codes like DDU, CIP et al. Field length must be = 3. 
+    export_type.TermsOfTrade = 'DDP'
+    export_type.Amount = '22'
+
+    export_type.Description = SHIPMENT_DESC
+    export_type.CountryCodeOrigin = SHIPPER_COUNTRY_CODE
+    export_type.CustomsValue = TD_VALUE_GOODS
+    export_type.CustomsCurrency = TD_CURRENCY
+    export_type.ExportDocPosition = {
+        'Description': 'test descri',
+        'CountryCodeOrigin': 'DE',
+        'Amount': 22,
+        'NetWeightInKG': 3,
+        'GrossWeightInKG': 3,
+        'CustomsValue': 12,
+        'CustomsCurrency': 'EUR',
+    }
+
+    return export_type
+
+
 
 def create_shipment():
     shipment_order_type = client.factory.create('ns0:ShipmentOrderDDType')
     shipment_order_type.SequenceNumber = 1
-    shipment_order_type.LabelResponseType = "XML"
+    shipment_order_type.LabelResponseType = "URL"
 
     shipment_type = client.factory.create('ns0:Shipment')
     shipment_type.ShipmentDetails = create_shipment_details_dd_type()
     shipment_type.Shipper = create_shipper()
     shipment_type.Receiver = create_receiver()
+    shipment_type.ExportDocument = export_doc_type()
 
     shipment_order_type.Shipment = shipment_type
 
-    #print shipment_order_type
-
     try:
         print client.service.createShipmentDD(create_version(), shipment_order_type)
+        print client.last_sent()
+        print client.last_received()
+        import pdb; pdb.set_trace()
     except suds.WebFault, exc:
         traceback.print_exc()
         print client.last_sent()
+        print client.last_received()
         import pdb; pdb.set_trace()
 
 
 if __name__ == '__main__':
-    print create_shipment()
+    create_shipment()
