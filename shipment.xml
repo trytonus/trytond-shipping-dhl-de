@@ -1,5 +1,18 @@
 <?xml version="1.0"?>
 <tryton>
     <data>
+
+        <record model="ir.ui.view" id="shipment_view_form">
+            <field name="model">stock.shipment.out</field>
+            <field name="type">form</field>
+            <field name="inherit" ref="stock.shipment_out_view_form"/>
+            <field name="name">shipment_view_form</field>
+        </record>
+        <record model="ir.ui.view" id="shipping_dhl_de_config_wizard_view_form">
+            <field name="model">shipping.label.dhl_de</field>
+            <field name="type">form</field>
+            <field name="name">shipping_dhl_de_config_wizard_view_form</field>
+        </record>
+
     </data>
 </tryton>

@@ -9,6 +9,12 @@
           <field name="dhl_de_username"/>
           <label name="dhl_de_password"/>
           <field name="dhl_de_password"/>
+          <label name="dhl_de_api_user"/>
+          <field name="dhl_de_api_user"/>
+          <label name="dhl_de_api_signature"/>
+          <field name="dhl_de_api_signature"/>
+          <label name="dhl_de_account_no"/>
+          <field name="dhl_de_account_no"/>
           <label name="dhl_de_environment"/>
           <field name="dhl_de_environment"/>
           <newline/>

@@ -5,13 +5,17 @@
     :copyright: (c) 2015 by Openlabs Technologies & Consulting (P) Limited
     :license: BSD, see LICENSE for more details.
 """
+from decimal import Decimal
+
 from suds import WebFault
 from suds.client import Client
+from suds.plugin import MessagePlugin
 
 from trytond.pool import PoolMeta, Pool
 from trytond.model import fields, ModelView
 from trytond.pyson import Eval
 from trytond.wizard import Wizard, StateView, Button
+from trytond.transaction import Transaction
 
 __all__ = ['Carrier', 'TestConnectionStart', 'TestConnection']
 __metaclass__ = PoolMeta
@@ -20,6 +24,23 @@ STATES = {
     'required': Eval('carrier_cost_method') == 'dhl_de',
     'invisible': Eval('carrier_cost_method') != 'dhl_de'
 }
+
+
+class FixPrefix(MessagePlugin):
+    """
+    Suds client plugin to fix prefixes
+    """
+    def marshalled(self, context):
+        shipment_dd = context.envelope.getChild(
+            'Body'
+        ).getChild('CreateShipmentDDRequest')
+
+        shipment_dd.getChild('Version').setPrefix('ns0')
+        shipment_details = shipment_dd.getChild('ShipmentOrder') \
+            .getChild('Shipment').getChild('ShipmentDetails')
+        shipment_details.getChild('EKP').setPrefix('ns0')
+        shipment_details.getChild('Attendance').getChild('partnerID') \
+            .setPrefix('ns0')
 
 
 class Carrier:
@@ -34,10 +55,27 @@ class Carrier:
         'Password', states=STATES, depends=['carrier_cost_method'],
         help="Application Token (Production)\nPortal Password(Staging)"
     )
+    dhl_de_api_user = fields.Char(
+        'API User', states=STATES, depends=['carrier_cost_method'],
+        help="Intraship-User"
+    )
+    dhl_de_api_signature = fields.Char(
+        'API Signature', states=STATES, depends=['carrier_cost_method'],
+        help="IntrashipPasswort"
+    )
+    dhl_de_account_no = fields.Char(
+        'Account Number', states=STATES, depends=['carrier_cost_method'],
+        help="DHL Account Number (14 digit)"
+    )
     dhl_de_environment = fields.Selection([
         ('sandbox', 'Testing & Development (Sandbox)'),
         ('production', 'Production'),
     ], 'Environment', states=STATES, depends=['carrier_cost_method'])
+
+    def __init__(self, *args, **kwargs):
+        super(Carrier, self).__init__(*args, **kwargs)
+        self._dhl_de_version = None
+        self._dhl_de_client = None
 
     @classmethod
     def __setup__(cls):
@@ -59,18 +97,49 @@ class Carrier:
 
     def get_dhl_de_client(self):
         """
-        Return the DPD client with the username and password set
+        Return the DHL DE client with the username and password set
         """
-        location='https://cig.dhl.de/services/sandbox/soap'
-        if self.dhl_de_environment == 'production':
-            location='https://cig.dhl.de/services/production/soap'
+        if self._dhl_de_client is None:
+            location = 'https://cig.dhl.de/services/sandbox/soap'
+            if self.dhl_de_environment == 'production':  # pragma: no cover
+                location = 'https://cig.dhl.de/services/production/soap'
 
-        return Client(
-            self.dhl_de_wsdl_url,
-            username=self.dhl_de_username,
-            password=self.dhl_de_password,
-            location=location,
-        )
+            client = Client(
+                self.dhl_de_wsdl_url,
+                username=self.dhl_de_username,
+                password=self.dhl_de_password,
+                location=location,
+            )
+            self._dhl_de_client = client
+
+        return self._dhl_de_client
+
+    def get_dhl_de_version(self):
+        if self._dhl_de_version is None:
+            client = self.get_dhl_de_client()
+            self._dhl_de_version = client.service.getVersion()
+
+        return self._dhl_de_version
+
+    def send_dhl_de_create_shipment_shipment_dd(self, shipment_orders):
+        """
+        Send ShipmentDD Request
+        """
+        version = self.get_dhl_de_version()
+        client = self.get_dhl_de_client()
+        client.set_options(soapheaders=[{
+            'user': self.dhl_de_api_user,
+            'signature': self.dhl_de_api_signature,
+            'type': 0,
+        }], plugins=[FixPrefix()])
+
+        try:
+            response = client.service.createShipmentDD(version, shipment_orders)
+        except WebFault, exc:  # pragma: no cover
+            print client.last_sent()
+            print client.last_received()
+            self.raise_user_error(exc.fault)
+        return response
 
     @classmethod
     @ModelView.button_action('shipping_dhl_de.wizard_test_connection')
@@ -78,15 +147,15 @@ class Carrier:
         """
         Tests the connection. If there is a WebFault, raises an UserError
         """
-        if len(carriers) != 1:
+        if len(carriers) != 1:  # pragma: no cover
             cls.raise_user_error('Only one carrier can be tested at a time.')
 
         client = carriers[0].get_dhl_de_client()
         try:
             client.service.getVersion()
-        except WebFault, exc:
+        except WebFault, exc:  # pragma: no cover
             cls.raise_user_error(exc.fault)
-        except Exception, exc:
+        except Exception, exc:  # pragma: no cover
             if exc.args and isinstance(exc.args[0], tuple):
                 status, reason = exc.args[0]
                 if status == 401:
@@ -95,6 +164,26 @@ class Carrier:
                     'Status: %s\nReason: %s' % exc.args[0]
                 )
             raise
+
+    def get_sale_price(self):
+        """Estimates the shipment rate for the current shipment
+        DHL DE dont provide and shipping cost, so here shipping_cost will be 0
+        returns a tuple of (value, currency_id)
+        :returns: A tuple of (value, currency_id which in this case is EUR)
+        """
+        Currency = Pool().get('currency.currency')
+        Company = Pool().get('company.company')
+
+        if self.carrier_cost_method != 'dhl_de':
+            return super(Carrier, self).get_sale_price()  # pragma: no cover
+
+        currency, = Currency.search([('code', '=', 'EUR')])
+        company = Transaction().context.get('company')
+
+        if company:
+            currency = Company(company).currency
+
+        return Decimal('0'), currency.id
 
 
 class TestConnectionStart(ModelView):
