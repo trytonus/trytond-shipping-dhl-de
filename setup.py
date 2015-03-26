@@ -83,6 +83,7 @@ minor_version = int(minor_version)
 requires = [
     'suds',
     'requests',
+    'logbook',
 ]
 
 MODULE2PREFIX = {
