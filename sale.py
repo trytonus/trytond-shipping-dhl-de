@@ -9,7 +9,7 @@ from trytond.pool import PoolMeta, Pool
 from trytond.model import fields
 from trytond.pyson import Eval, Bool, And
 
-__all__ = ['Sale']
+__all__ = ['Sale', 'SaleConfiguration']
 __metaclass__ = PoolMeta
 
 STATES = {
@@ -57,6 +57,19 @@ DHL_DE_INCOTERMS = [
 ]
 
 
+class SaleConfiguration:
+    'Sale Configuration'
+    __name__ = 'sale.configuration'
+
+    dhl_de_product_code = fields.Selection(
+        DHL_DE_PRODUCTS, 'DHL DE PRODUCT CODE'
+    )
+
+    @staticmethod
+    def default_dhl_de_product_code():
+        return 'EPN'
+
+
 class Sale:
     "Sale"
     __name__ = 'sale.sale'
@@ -83,6 +96,12 @@ class Sale:
         DHL_DE_INCOTERMS, 'Terms of Trade (incoterms)',
         states=INTERNATIONAL_STATES, depends=INTERNATIONAL_DEPENDS
     )
+
+    @staticmethod
+    def default_dhl_de_product_code():
+        Config = Pool().get('sale.configuration')
+        config = Config(1)
+        return config.dhl_de_product_code
 
     def get_is_dhl_de_shipping(self, name):
         """

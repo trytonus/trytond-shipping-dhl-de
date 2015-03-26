@@ -8,7 +8,7 @@
 from trytond.pool import Pool
 from carrier import Carrier, TestConnectionStart, TestConnection
 from party import Address
-from sale import Sale
+from sale import Sale, SaleConfiguration
 from shipment import ShipmentOut, GenerateShippingLabel, ShippingDHLDE
 
 
@@ -17,6 +17,7 @@ def register():
         Address,
         Carrier,
         Sale,
+        SaleConfiguration,
         ShipmentOut,
         ShippingDHLDE,
         TestConnectionStart,
