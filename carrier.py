@@ -16,6 +16,9 @@ from trytond.model import fields, ModelView
 from trytond.pyson import Eval
 from trytond.wizard import Wizard, StateView, Button
 from trytond.transaction import Transaction
+from logbook import Logger
+
+log = Logger('shipping_dhl_de')
 
 __all__ = ['Carrier', 'TestConnectionStart', 'TestConnection']
 __metaclass__ = PoolMeta
@@ -136,8 +139,8 @@ class Carrier:
         try:
             response = client.service.createShipmentDD(version, shipment_orders)
         except WebFault, exc:  # pragma: no cover
-            print client.last_sent()
-            print client.last_received()
+            log.debug(client.last_sent())
+            log.debug(client.last_received())
             self.raise_user_error(exc.fault)
         return response
 
