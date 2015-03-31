@@ -12,6 +12,7 @@ from trytond.pool import Pool, PoolMeta
 from trytond.pyson import Eval, Bool
 from trytond.wizard import Wizard, StateView, Button
 from sale import DHL_DE_PRODUCTS, DHL_DE_EXPORT_TYPES, DHL_DE_INCOTERMS
+from sale import log
 
 __metaclass__ = PoolMeta
 __all__ = [
@@ -264,6 +265,8 @@ class ShipmentOut:
 
         creation_state, = response.CreationState
         if creation_state.StatusCode != '0':  # pragma: no cover
+            log.debug(client.last_sent())
+            log.debug(client.last_received())
             self.raise_user_error('\n'.join(creation_state.StatusMessage))
         tracking_number = \
             creation_state.ShipmentNumber.shipmentNumber
