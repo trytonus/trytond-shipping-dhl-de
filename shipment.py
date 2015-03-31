@@ -13,7 +13,7 @@ from trytond.pool import Pool, PoolMeta
 from trytond.pyson import Eval, Bool
 from trytond.wizard import Wizard, StateView, Button
 from sale import DHL_DE_PRODUCTS, DHL_DE_EXPORT_TYPES, DHL_DE_INCOTERMS
-from sale import log
+from carrier import log
 
 __metaclass__ = PoolMeta
 __all__ = [
