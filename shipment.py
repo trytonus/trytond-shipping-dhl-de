@@ -7,6 +7,7 @@
 """
 import requests
 
+from sale import INTERNATIONAL_STATES, INTERNATIONAL_DEPENDS
 from trytond.model import fields, ModelView
 from trytond.pool import Pool, PoolMeta
 from trytond.pyson import Eval, Bool
@@ -38,11 +39,16 @@ class ShipmentOut:
         depends=['is_dhl_de_shipping', 'state']
     )
     dhl_de_export_type = fields.Selection(
-        DHL_DE_EXPORT_TYPES, 'DHL DE Export Type'
+        DHL_DE_EXPORT_TYPES, 'DHL DE Export Type', states=INTERNATIONAL_STATES,
+        depends=INTERNATIONAL_DEPENDS
     )
-    dhl_de_export_type_description = fields.Char('Export Type Description')
+    dhl_de_export_type_description = fields.Char(
+        'Export Type Description', states=INTERNATIONAL_STATES,
+        depends=INTERNATIONAL_DEPENDS
+    )
     dhl_de_terms_of_trade = fields.Selection(
         DHL_DE_INCOTERMS, 'Terms of Trade (incoterms)',
+        depends=INTERNATIONAL_DEPENDS, states=INTERNATIONAL_STATES
     )
 
     def get_is_dhl_de_shipping(self, name):

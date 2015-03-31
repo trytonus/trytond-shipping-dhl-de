@@ -7,7 +7,7 @@
 """
 from trytond.pool import PoolMeta, Pool
 from trytond.model import fields
-from trytond.pyson import Eval, Bool
+from trytond.pyson import Eval, Bool, And
 
 __all__ = ['Sale']
 __metaclass__ = PoolMeta
@@ -16,6 +16,16 @@ STATES = {
     'readonly': Eval('state') == 'done',
     'required': Bool(Eval('is_dhl_de_shipping')),
 }
+INTERNATIONAL_STATES = {
+    'readonly': Eval('state') == 'done',
+    'required': And(
+        Bool(Eval('is_dhl_de_shipping')),
+        Bool(Eval('is_international_shipping'))
+    ),
+}
+INTERNATIONAL_DEPENDS = [
+    'state', 'is_international_shipping', 'is_dhl_de_shipping'
+]
 
 DHL_DE_PRODUCTS = [
     (None, ''),
@@ -61,13 +71,16 @@ class Sale:
         ]
     )
     dhl_de_export_type = fields.Selection(
-        DHL_DE_EXPORT_TYPES, 'DHL DE Export Type'
+        DHL_DE_EXPORT_TYPES, 'DHL DE Export Type', states=INTERNATIONAL_STATES,
+        depends=INTERNATIONAL_DEPENDS
     )
     dhl_de_export_type_description = fields.Char(
-        'Export Type Description'
+        'Export Type Description', states=INTERNATIONAL_STATES,
+        depends=INTERNATIONAL_DEPENDS
     )
     dhl_de_terms_of_trade = fields.Selection(
         DHL_DE_INCOTERMS, 'Terms of Trade (incoterms)',
+        states=INTERNATIONAL_STATES, depends=INTERNATIONAL_DEPENDS
     )
 
     def get_is_dhl_de_shipping(self, name):
