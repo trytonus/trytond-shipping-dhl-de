@@ -30,13 +30,14 @@ INTERNATIONAL_DEPENDS = [
 DHL_DE_PRODUCTS = [
     (None, ''),
     ('BPI', 'Weltpaket'),
-    ('EPI', 'DHL Europaket'),
     ('EPN', 'DHL Paket'),
-    ('EUP', 'GHL Europlus'),
-    ('EXI (td)', 'Express Ident'),
-    ('EXP (td)', 'DHL Express Paket'),
-    ('OFP (td)', 'DHL Officepack'),
-    ('RPN', 'Regional Paket AT'),
+    # Features which are not implemented yet.
+    # ('EPI', 'DHL Europaket'),
+    # ('EUP', 'GHL Europlus'),
+    # ('EXI (td)', 'Express Ident'),
+    # ('EXP (td)', 'DHL Express Paket'),
+    # ('OFP (td)', 'DHL Officepack'),
+    # ('RPN', 'Regional Paket AT'),
 ]
 
 DHL_DE_EXPORT_TYPES = [
