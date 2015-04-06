@@ -9,7 +9,7 @@ from trytond.pool import PoolMeta, Pool
 from trytond.model import fields
 from trytond.pyson import Eval, Bool, And
 
-__all__ = ['Sale']
+__all__ = ['Sale', 'SaleConfiguration']
 __metaclass__ = PoolMeta
 
 STATES = {
@@ -30,13 +30,14 @@ INTERNATIONAL_DEPENDS = [
 DHL_DE_PRODUCTS = [
     (None, ''),
     ('BPI', 'Weltpaket'),
-    ('EPI', 'DHL Europaket'),
     ('EPN', 'DHL Paket'),
-    ('EUP', 'GHL Europlus'),
-    ('EXI (td)', 'Express Ident'),
-    ('EXP (td)', 'DHL Express Paket'),
-    ('OFP (td)', 'DHL Officepack'),
-    ('RPN', 'Regional Paket AT'),
+    # Features which are not implemented yet.
+    # ('EPI', 'DHL Europaket'),
+    # ('EUP', 'GHL Europlus'),
+    # ('EXI (td)', 'Express Ident'),
+    # ('EXP (td)', 'DHL Express Paket'),
+    # ('OFP (td)', 'DHL Officepack'),
+    # ('RPN', 'Regional Paket AT'),
 ]
 
 DHL_DE_EXPORT_TYPES = [
@@ -54,6 +55,19 @@ DHL_DE_INCOTERMS = [
     ('CIP', 'CIP'),
     ('DDP', 'DDP'),
 ]
+
+
+class SaleConfiguration:
+    'Sale Configuration'
+    __name__ = 'sale.configuration'
+
+    dhl_de_product_code = fields.Selection(
+        DHL_DE_PRODUCTS, 'DHL DE PRODUCT CODE'
+    )
+
+    @staticmethod
+    def default_dhl_de_product_code():
+        return 'EPN'
 
 
 class Sale:
@@ -82,6 +96,12 @@ class Sale:
         DHL_DE_INCOTERMS, 'Terms of Trade (incoterms)',
         states=INTERNATIONAL_STATES, depends=INTERNATIONAL_DEPENDS
     )
+
+    @staticmethod
+    def default_dhl_de_product_code():
+        Config = Pool().get('sale.configuration')
+        config = Config(1)
+        return config.dhl_de_product_code
 
     def get_is_dhl_de_shipping(self, name):
         """
