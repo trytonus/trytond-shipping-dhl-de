@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<form string="DHL DE Configuration">
+<form string="DHL DE Configuration" col="4">
     <label name="product_code"/>
     <field name="product_code"/>
-    <group col="1" id="international" states="{'invisible': Not(Bool(Eval('is_international_shipping')))}">
+    <group id="international" states="{'invisible': Not(Bool(Eval('is_international_shipping')))}" colspan="4">
         <label name="export_type"/>
         <field name="export_type"/>
         <label name="terms_of_trade"/>
