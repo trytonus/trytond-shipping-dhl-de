@@ -350,6 +350,8 @@ class TestDHLDEShipment(unittest.TestCase):
                 'value': 'kai@wahn.de',
             }])],
         }])
+        sale_config = self.SaleConfig()
+        sale_config.save()
 
     def create_sale(self, party):
         """
@@ -383,8 +385,8 @@ class TestDHLDEShipment(unittest.TestCase):
                 sale.dhl_de_export_type_description = 'Export Description'
                 sale.dhl_de_terms_of_trade = 'DDP'
             else:
-                # Domestic
-                sale.dhl_de_product_code = 'EPN'
+                # Domestic: Defaults to EPN from SaleConfig
+                pass
 
             sale.save()
 
