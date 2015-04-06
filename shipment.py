@@ -347,17 +347,19 @@ class ShippingDHLDE(ModelView):
     __name__ = 'shipping.label.dhl_de'
 
     product_code = fields.Selection(
-        DHL_DE_PRODUCTS, 'DHL DE Product Code', required=True,
-        states=INTERNATIONAL_STATES, depends=INTERNATIONAL_DEPENDS
+        DHL_DE_PRODUCTS, 'DHL DE Product Code', required=True
     )
     is_international_shipping = fields.Boolean("Is International Shipping")
-
     export_type = fields.Selection(
         DHL_DE_EXPORT_TYPES, 'DHL DE Export Type',
-        states=INTERNATIONAL_STATES, depends=INTERNATIONAL_DEPENDS
+        states={
+            'required': Bool(Eval('is_international_shipping'))
+        }, depends=['is_international_shipping']
     )
     export_type_description = fields.Char('Export Type Description')
     terms_of_trade = fields.Selection(
         DHL_DE_INCOTERMS, 'Terms of Trade (incoterms)',
-        states=INTERNATIONAL_STATES, depends=INTERNATIONAL_DEPENDS
+        states={
+            'required': Bool(Eval('is_international_shipping'))
+        }, depends=['is_international_shipping']
     )
