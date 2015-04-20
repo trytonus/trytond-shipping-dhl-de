@@ -16,8 +16,8 @@ def register():
     Pool.register(
         Address,
         Carrier,
-        Sale,
         SaleConfiguration,
+        Sale,
         ShipmentOut,
         ShippingDHLDE,
         TestConnectionStart,
