@@ -4,7 +4,7 @@
 
     Test dhl de Integration
 
-    :copyright: (c) 2014 by Openlabs Technologies & Consulting (P) Limited
+    :copyright: (c) 2014-2015 by Openlabs Technologies & Consulting (P) Limited
     :license: GPLv3, see LICENSE for more details.
 """
 from decimal import Decimal
@@ -19,6 +19,7 @@ import trytond.tests.test_tryton
 from trytond.tests.test_tryton import POOL, DB_NAME, USER, CONTEXT
 from trytond.transaction import Transaction
 from trytond.config import config
+from trytond.exceptions import UserError
 config.set('database', 'path', '.')
 
 DIR = os.path.abspath(os.path.normpath(
@@ -404,6 +405,24 @@ class TestDHLDEShipment(unittest.TestCase):
             self.Sale.confirm([sale])
             self.Sale.process([sale])
 
+    def create_shipment_package(self, shipment):
+        """
+        Create a package for the shipment
+        """
+        Package = POOL.get('stock.package')
+        ModelData = POOL.get('ir.model.data')
+
+        type_id = ModelData.get_id(
+            "shipping", "shipment_package_type"
+        )
+
+        package, = Package.create([{
+            'shipment': '%s,%d' % (shipment.__name__, shipment.id),
+            'type': type_id,
+            'moves': [('add', shipment.outgoing_moves)],
+        }])
+        return package
+
     def test_0010_generate_dhl_de_labels(self):
         """Test case to generate DHL DE labels.
         """
@@ -436,10 +455,16 @@ class TestDHLDEShipment(unittest.TestCase):
             shipment.pack([shipment])
 
             with Transaction().set_context(company=self.company.id):
+                # Test if UserError is raised as shipment has no packages
+                with self.assertRaises(UserError):
+                    shipment.make_dhl_de_labels()
+
+                self.create_shipment_package(shipment)
                 # Call method to generate labels.
                 shipment.make_dhl_de_labels()
 
             self.assertTrue(shipment.tracking_number)
+            self.assertTrue(shipment.packages[0].tracking_number)
             self.assertTrue(
                 self.IrAttachment.search([
                     ('resource', '=', 'stock.shipment.out,%s' % shipment.id)
@@ -485,8 +510,10 @@ class TestDHLDEShipment(unittest.TestCase):
                 generate_label.start.override_weight = Decimal('0')
                 generate_label.start.carrier = result['carrier']
 
+                generate_label.transition_next()
+                self.assertTrue(shipment.packages)
+                self.assertEqual(len(shipment.packages), 1)
                 result = generate_label.default_dhl_de_config({})
-                print result
 
                 self.assertEqual(
                     result['product_code'], shipment.dhl_de_product_code
@@ -504,6 +531,7 @@ class TestDHLDEShipment(unittest.TestCase):
                 )
 
             self.assertTrue(shipment.tracking_number)
+            self.assertTrue(shipment.packages[0].tracking_number)
             self.assertEqual(shipment.carrier, self.carrier)
             self.assertEqual(shipment.cost_currency, self.currency)
             self.assertEqual(shipment.dhl_de_product_code, 'EPN')
@@ -538,16 +566,142 @@ class TestDHLDEShipment(unittest.TestCase):
             # Make shipment in packed state.
             shipment.assign([shipment])
             shipment.pack([shipment])
+            self.create_shipment_package(shipment)
 
             with Transaction().set_context(company=self.company.id):
                 # Call method to generate labels.
                 shipment.make_dhl_de_labels()
 
             self.assertTrue(shipment.tracking_number)
+            self.assertTrue(shipment.packages[0].tracking_number)
             self.assertTrue(
                 self.IrAttachment.search([
                     ('resource', '=', 'stock.shipment.out,%s' % shipment.id)
                 ], count=True) > 0
+            )
+
+    def test_0040_generate_dhl_de_labels_multiple_packages_using_wizard(self):
+        """
+        Test case to generate DHL DE labels using wizard
+        """
+        Package = POOL.get('stock.package')
+        ModelData = POOL.get('ir.model.data')
+
+        with Transaction().start(DB_NAME, USER, context=CONTEXT):
+
+            # Call method to create sale order
+            self.setup_defaults()
+            with Transaction().set_context(company=self.company.id):
+
+                party = self.sale_party
+                # Create sale order
+                sale, = self.Sale.create([{
+                    'reference': 'S-1001',
+                    'payment_term': self.payment_term,
+                    'party': party.id,
+                    'invoice_address': party.addresses[0].id,
+                    'shipment_address': party.addresses[0].id,
+                    'carrier': self.carrier.id,
+                    'lines': [
+                        ('create', [{
+                            'type': 'line',
+                            'quantity': 1,
+                            'product': self.product,
+                            'unit_price': Decimal('10.00'),
+                            'description': 'Test Description1',
+                            'unit': self.product.template.default_uom,
+                        }, {
+                            'type': 'line',
+                            'quantity': 2,
+                            'product': self.product,
+                            'unit_price': Decimal('10.00'),
+                            'description': 'Test Description1',
+                            'unit': self.product.template.default_uom,
+                        }]),
+                    ]
+                }])
+
+                self.StockLocation.write([sale.warehouse], {
+                    'address': self.company.party.addresses[0].id,
+                })
+
+                # Confirm and process sale order
+                self.assertEqual(len(sale.lines), 2)
+                self.Sale.quote([sale])
+                self.Sale.confirm([sale])
+                self.Sale.process([sale])
+
+            shipment = sale.shipments[0]
+
+            type_id = ModelData.get_id(
+                "shipping", "shipment_package_type"
+            )
+
+            package1, package2 = Package.create([{
+                'shipment': '%s,%d' % (shipment.__name__, shipment.id),
+                'type': type_id,
+                'moves': [('add', [shipment.outgoing_moves[0]])],
+            }, {
+                'shipment': '%s,%d' % (shipment.__name__, shipment.id),
+                'type': type_id,
+                'moves': [('add', [shipment.outgoing_moves[1]])],
+            }])
+            # Before generating labels, there is no tracking number generated
+            # And no attachment created for labels
+            self.assertFalse(shipment.tracking_number)
+            attatchment = self.IrAttachment.search([])
+            self.assertEqual(len(attatchment), 0)
+
+            # Make shipment in packed state.
+            shipment.assign([shipment])
+            shipment.pack([shipment])
+
+            with Transaction().set_context(
+                company=self.company.id, active_id=shipment.id
+            ):
+                # Call method to generate labels.
+                session_id, start_state, _ = self.GenerateLabel.create()
+
+                generate_label = self.GenerateLabel(session_id)
+
+                result = generate_label.default_start({})
+
+                self.assertEqual(result['shipment'], shipment.id)
+                self.assertEqual(result['carrier'], shipment.carrier.id)
+
+                generate_label.start.shipment = shipment.id
+                generate_label.start.override_weight = Decimal('0')
+                generate_label.start.carrier = result['carrier']
+
+                result = generate_label.default_dhl_de_config({})
+
+                self.assertEqual(
+                    result['product_code'], shipment.dhl_de_product_code
+                )
+
+                generate_label.dhl_de_config.product_code = 'EPN'
+                result = generate_label.default_generate({})
+
+                self.assertEqual(
+                    result['message'],
+                    'Shipment labels have been generated via %s and saved as '
+                    'attachments for the shipment' % (
+                        shipment.carrier.carrier_cost_method.upper()
+                    )
+                )
+
+            self.assertTrue(shipment.tracking_number)
+            self.assertTrue(package1.tracking_number)
+            self.assertTrue(package2.tracking_number)
+            self.assertNotEqual(
+                package1.tracking_number, package2.tracking_number)
+            self.assertEqual(shipment.carrier, self.carrier)
+            self.assertEqual(shipment.cost_currency, self.currency)
+            self.assertEqual(shipment.dhl_de_product_code, 'EPN')
+            self.assertTrue(
+                self.IrAttachment.search([
+                    ('resource', '=', 'stock.shipment.out,%s' % shipment.id)
+                ], count=True) == 1
             )
 
 
