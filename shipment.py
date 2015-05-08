@@ -100,13 +100,27 @@ class ShipmentOut:
         shipment_details.CustomerReference = self.customer.code or \
             self.customer.id
 
-        # XXX: One shipment item/box for 1 customer shipment
-        shipment_item = client.factory.create('ns0:ShipmentItemDDType')
-        shipment_item.WeightInKG = self.package_weight
+        shipment_items = []
 
-        # TODO: Add package type
-        shipment_item.PackageType = 'PK'
-        shipment_details.ShipmentItem = [shipment_item]
+        for package in self.packages:
+            shipment_item = client.factory.create('ns0:ShipmentItemDDType')
+            shipment_item.WeightInKG = package.package_weight
+
+            # TODO: Add package type
+            shipment_item.PackageType = 'PK'
+            shipment_items.append(shipment_item)
+
+        shipment_details.ShipmentItem = shipment_items
+
+        # Multipack service can be used for DHL Paket only
+        if len(self.packages) > 1 and self.dhl_de_product_code == 'EPN':
+            # Mark as Multipack service
+            shipment_service = client.factory.create('ns0:ShipmentServiceDD')
+            shipment_service_group = client.factory.create(
+                'ns0:DDServiceGroupDHLPaketType')
+            shipment_service_group.Multipack = True
+            shipment_service.ServiceGroupDHLPaket = shipment_service_group
+            shipment_details.Service = [shipment_service]
 
         # TODO: Implement Service
 
@@ -213,6 +227,7 @@ class ShipmentOut:
         ])
         export_type.Description = description
 
+        package_weight = sum([p.package_weight for p in self.packages])
         from_address = self._get_ship_from_address()
         export_type.CountryCodeOrigin = from_address.country.code
         export_type.CustomsValue = value
@@ -221,8 +236,8 @@ class ShipmentOut:
             'Description': description,
             'CountryCodeOrigin': from_address.country.code,
             'Amount': 1,
-            'NetWeightInKG': self.package_weight,
-            'GrossWeightInKG': self.package_weight,
+            'NetWeightInKG': package_weight,
+            'GrossWeightInKG': package_weight,
             'CustomsValue': value,
             'CustomsCurrency': self.company.currency.code,
         }
@@ -260,6 +275,9 @@ class ShipmentOut:
         if self.tracking_number:  # pragma: no cover
             self.raise_user_error('tracking_number_already_present')
 
+        if not self.packages:
+            self.raise_user_error("no_packages", error_args=(self.id,))
+
         client = self.carrier.get_dhl_de_client()
         shipment_order_type = client.factory.create('ns0:ShipmentOrderDDType')
         shipment_order_type.SequenceNumber = '%s' % self.id
@@ -280,6 +298,13 @@ class ShipmentOut:
 
         self.tracking_number = unicode(tracking_number)
         self.save()
+
+        # DHL returns the tracking number of each piece in reverse order
+        piece_info = creation_state.PieceInformation
+        piece_info.reverse()
+        for package, package_info in zip(self.packages, piece_info):
+            package.tracking_number = package_info.PieceNumber.licensePlate
+            package.save()
 
         try:
             pdf_label = requests.get(label_url)
