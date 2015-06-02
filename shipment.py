@@ -104,7 +104,7 @@ class ShipmentOut:
 
         for package in self.packages:
             shipment_item = client.factory.create('ns0:ShipmentItemDDType')
-            shipment_item.WeightInKG = package.package_weight
+            shipment_item.WeightInKG = package.weight
 
             # TODO: Add package type
             shipment_item.PackageType = 'PK'
@@ -227,7 +227,7 @@ class ShipmentOut:
         ])
         export_type.Description = description
 
-        package_weight = sum([p.package_weight for p in self.packages])
+        package_weight = sum([p.weight for p in self.packages])
         from_address = self._get_ship_from_address()
         export_type.CountryCodeOrigin = from_address.country.code
         export_type.CustomsValue = value

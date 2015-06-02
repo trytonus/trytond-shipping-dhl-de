@@ -302,6 +302,7 @@ class TestDHLDEShipment(unittest.TestCase):
 
         values = {
             'party': carrier_party.id,
+            'currency': self.currency.id,
             'carrier_product': carrier_product.id,
             'carrier_cost_method': 'dhl_de',
             'dhl_de_username': self.username,
