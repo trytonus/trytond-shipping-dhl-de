@@ -705,6 +705,68 @@ class TestDHLDEShipment(unittest.TestCase):
                 ], count=True) == 1
             )
 
+    def test_0050_sale_quotation(self):
+        """
+        Test how export type description field will be populated
+        """
+        StockLocation = POOL.get('stock.location')
+        with Transaction().start(DB_NAME, USER, context=CONTEXT) as txn:
+            self.setup_defaults()
+            txn.set_context(company=self.company.id)
+
+            StockLocation.write(
+                StockLocation.search([('type', '=', 'warehouse')]), {
+                    'address': self.sale_party.addresses[0].id,
+                }
+            )
+            # Create sale order
+            sale_line = self.SaleLine(**{
+                'type': 'line',
+                'quantity': 1,
+                'product': self.product,
+                'unit_price': Decimal('10.00'),
+                'description': 'Test Description1',
+                'unit': self.product.template.default_uom,
+            })
+            sale = self.Sale(**{
+                'reference': 'S-1001',
+                'payment_term': self.payment_term,
+                'party': self.sale_party2.id,
+                'description': 'Sale Description',
+                'invoice_address': self.sale_party2.addresses[0].id,
+                'shipment_address': self.sale_party2.addresses[0].id,
+                'carrier': self.carrier.id,
+                'lines': [sale_line],
+            })
+            # International
+            sale.dhl_de_product_code = 'BPI'
+            sale.dhl_de_export_type = '0'
+            sale.dhl_de_terms_of_trade = 'DDP'
+            sale.save()
+
+            # Description
+            self.Sale.quote([sale])
+            self.assertEqual(
+                sale.dhl_de_export_type_description, sale.description
+            )
+
+            self.Sale.draft([sale])
+            sale.description = None
+            sale.dhl_de_export_type_description = None
+            sale.save()
+
+            # Product lines
+            self.Sale.quote([sale])
+            self.assertEqual(
+                sale.dhl_de_export_type_description,
+                ', '.join(
+                    map(
+                        lambda line: line.type == 'line' and line.product.name,
+                        sale.lines
+                    )
+                )
+            )
+
 
 def suite():
     """

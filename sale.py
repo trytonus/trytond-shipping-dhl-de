@@ -6,7 +6,7 @@
     :license: BSD, see LICENSE for more details.
 """
 from trytond.pool import PoolMeta, Pool
-from trytond.model import fields
+from trytond.model import fields, ModelView, Workflow
 from trytond.pyson import Eval, Bool, And
 
 __all__ = ['Sale', 'SaleConfiguration']
@@ -64,6 +64,12 @@ class SaleConfiguration:
     dhl_de_product_code = fields.Selection(
         DHL_DE_PRODUCTS, 'DHL DE PRODUCT CODE'
     )
+    dhl_de_export_type = fields.Selection(
+        DHL_DE_EXPORT_TYPES, 'DHL DE Export Type'
+    )
+    dhl_de_terms_of_trade = fields.Selection(
+        DHL_DE_INCOTERMS, 'Terms of Trade (incoterms)'
+    )
 
     @staticmethod
     def default_dhl_de_product_code():
@@ -89,8 +95,11 @@ class Sale:
         depends=INTERNATIONAL_DEPENDS
     )
     dhl_de_export_type_description = fields.Char(
-        'Export Type Description', states=INTERNATIONAL_STATES,
-        depends=INTERNATIONAL_DEPENDS
+        'Export Type Description', states={
+            'required': Eval('state').in_(['confirmed', 'processing', 'done']),
+            'readonly': Eval('state') == 'done',
+        },
+        depends=['state']
     )
     dhl_de_terms_of_trade = fields.Selection(
         DHL_DE_INCOTERMS, 'Terms of Trade (incoterms)',
@@ -102,6 +111,50 @@ class Sale:
         Config = Pool().get('sale.configuration')
         config = Config(1)
         return config.dhl_de_product_code
+
+    @staticmethod
+    def default_dhl_de_export_type():
+        Config = Pool().get('sale.configuration')
+        config = Config(1)
+        return config.dhl_de_export_type
+
+    @staticmethod
+    def default_dhl_de_terms_of_trade():
+        Config = Pool().get('sale.configuration')
+        config = Config(1)
+        return config.dhl_de_terms_of_trade
+
+    @classmethod
+    @ModelView.button
+    @Workflow.transition('quotation')
+    def quote(cls, sales):
+        """
+        Downstream implementation of quote method which provides a default
+        value to the dhl_de_export_type field.
+        """
+        for sale in sales:
+            if sale.is_dhl_de_shipping and sale.is_international_shipping:
+                sale.set_dhl_de_export_type_description()
+                sale.save()
+
+        super(Sale, cls).quote(sales)
+
+    def set_dhl_de_export_type_description(self):
+        """
+        This method sets a default export type description if none is set
+        """
+        if self.dhl_de_export_type_description:
+            return
+
+        if self.description:
+            self.dhl_de_export_type_description = self.description
+        else:
+            self.dhl_de_export_type_description = ', '.join(
+                map(
+                    lambda line: line.type == 'line' and line.product.name,
+                    self.lines
+                )
+            )
 
     def get_is_dhl_de_shipping(self, name):
         """
