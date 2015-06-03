@@ -134,12 +134,12 @@ class Sale:
         """
         for sale in sales:
             if sale.is_dhl_de_shipping and sale.is_international_shipping:
-                sale.set_export_type_description()
+                sale.set_dhl_de_export_type_description()
                 sale.save()
 
         super(Sale, cls).quote(sales)
 
-    def set_export_type_description(self):
+    def set_dhl_de_export_type_description(self):
         """
         This method sets a default export type description if none is set
         """
