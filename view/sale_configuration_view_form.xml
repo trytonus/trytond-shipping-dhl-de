@@ -5,5 +5,9 @@
         <separator string="DHL DE Defaults" colspan="4" id="dhl_de"/>
         <label name="dhl_de_product_code"/>
         <field name="dhl_de_product_code"/>
+        <label name="dhl_de_export_type"/>
+        <field name="dhl_de_export_type"/>
+        <label name="dhl_de_terms_of_trade"/>
+        <field name="dhl_de_terms_of_trade"/>
     </xpath>
 </data>
