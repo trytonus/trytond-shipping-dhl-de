@@ -96,7 +96,12 @@ class Sale:
     )
     dhl_de_export_type_description = fields.Char(
         'Export Type Description', states={
-            'required': Eval('state').in_(['confirmed', 'processing', 'done']),
+            'required': And(
+                Eval('state').in_(
+                    ['confirmed', 'processing', 'done']
+                ),
+                Bool(Eval('is_dhl_de_shipping'))
+            ),
             'readonly': Eval('state') == 'done',
         },
         depends=['state']
