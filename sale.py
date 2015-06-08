@@ -100,11 +100,12 @@ class Sale:
                 Eval('state').in_(
                     ['confirmed', 'processing', 'done']
                 ),
-                Bool(Eval('is_dhl_de_shipping'))
+                Bool(Eval('is_dhl_de_shipping')),
+                Bool(Eval('is_international_shipping'))
             ),
             'readonly': Eval('state') == 'done',
         },
-        depends=['state']
+        depends=INTERNATIONAL_DEPENDS
     )
     dhl_de_terms_of_trade = fields.Selection(
         DHL_DE_INCOTERMS, 'Terms of Trade (incoterms)',

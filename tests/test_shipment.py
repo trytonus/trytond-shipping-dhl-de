@@ -767,6 +767,43 @@ class TestDHLDEShipment(unittest.TestCase):
                 )
             )
 
+    def test_0060_sale_international_shipping(self):
+        """
+        Test that export_type_description is not required to quote-confirm-process sale
+        when international shipping is not enabled.
+        """
+        with Transaction().start(DB_NAME, USER, context=CONTEXT) as txn:
+            self.setup_defaults()
+            txn.set_context(company=self.company.id)
+
+            # Create sale order
+            sale_line = self.SaleLine(**{
+                'type': 'line',
+                'quantity': 1,
+                'product': self.product,
+                'unit_price': Decimal('10.00'),
+                'description': 'Test Description1',
+                'unit': self.product.template.default_uom,
+            })
+            sale = self.Sale(**{
+                'reference': 'S-1001',
+                'payment_term': self.payment_term,
+                'party': self.sale_party2.id,
+                'description': 'Sale Description',
+                'invoice_address': self.sale_party2.addresses[0].id,
+                'shipment_address': self.sale_party2.addresses[0].id,
+                'carrier': self.carrier.id,
+                'lines': [sale_line],
+            })
+            sale.save()
+
+            self.Sale.quote([sale])
+            # No export_type_description set on quoting
+            self.assertTrue(sale.dhl_de_export_type_description is None)
+
+            self.Sale.confirm([sale])
+            self.Sale.process([sale])
+
 
 def suite():
     """
