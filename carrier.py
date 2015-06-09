@@ -83,6 +83,12 @@ class Carrier:
     @classmethod
     def __setup__(cls):
         super(Carrier, cls).__setup__()
+        cls._error_messages.update({
+            'dhl_de_test_conn_error':
+                "Error while testing credentials from DHL DE: \n\n%s",
+            'dhl_de_label_error':
+                "Error while generating label from DHL DE: \n\n%s"
+        })
 
         selection = ('dhl_de', 'DHL (DE)')
         if selection not in cls.carrier_cost_method.selection:
@@ -141,7 +147,9 @@ class Carrier:
         except WebFault, exc:  # pragma: no cover
             log.debug(client.last_sent())
             log.debug(client.last_received())
-            self.raise_user_error(exc.fault)
+            self.raise_user_error(
+                'dhl_de_label_error', error_args=(exc.message, )
+            )
         return response
 
     @classmethod
@@ -157,7 +165,9 @@ class Carrier:
         try:
             client.service.getVersion()
         except WebFault, exc:  # pragma: no cover
-            cls.raise_user_error(exc.fault)
+            cls.raise_user_error(
+                'dhl_de_test_conn_error', error_args=(exc.message, )
+            )
         except Exception, exc:  # pragma: no cover
             if exc.args and isinstance(exc.args[0], tuple):
                 status, reason = exc.args[0]
