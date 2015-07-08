@@ -27,7 +27,7 @@ This module was built at `Openlabs <http://www.openlabs.co.in>`_.
 Professional Support
 --------------------
 
-This module is professionally supported by `Openlabs <http://www.openlabs.co.in>`_.
+This module is professionally supported by `Fulfil.IO Inc. <http://www.fulfil.io>`_.
 If you are looking for on-site teaching or consulting support, contact our
-`sales <mailto:sales@openlabs.co.in>`_ and `support
-<mailto:support@openlabs.co.in>`_ teams.
+`sales <mailto:sales@fulfil.io>`_ and `support
+<mailto:support@fulfil.io>`_ teams.

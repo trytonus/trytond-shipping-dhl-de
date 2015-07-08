@@ -2,8 +2,6 @@
 """
     Customizes party address to have address in correct format for DHL API
 
-    :copyright: (c) 2015 by Openlabs Technologies & Consulting (P) Limited
-    :license: BSD, see LICENSE for more details.
 """
 from trytond.pool import PoolMeta
 

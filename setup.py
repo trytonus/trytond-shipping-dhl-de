@@ -92,7 +92,7 @@ MODULE2PREFIX = {
 }
 
 MODULE = "shipping_dhl_de"
-PREFIX = "openlabs"
+PREFIX = "fio"
 for dep in info.get('depends', []):
     if not re.match(r'(ir|res|webdav)(\W|$)', dep):
         requires.append(
@@ -112,9 +112,9 @@ setup(
     version=info.get('version', '0.0.1'),
     description="Tryton Shipping Integration for Business Customers of "
     "DHL Germany",
-    author="Openlabs Technologies and Consulting (P) Ltd.",
-    author_email='info@openlabs.co.in',
-    url='http://www.openlabs.co.in/',
+    author="Fulfil.IO Inc., Openlabs Technologies and Consulting (P) Ltd.",
+    author_email='info@fulfil.io',
+    url='http://www.fulfil.io/',
     package_dir={'trytond.modules.%s' % MODULE: '.'},
     packages=[
         'trytond.modules.%s' % MODULE,
