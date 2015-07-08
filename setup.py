@@ -130,7 +130,7 @@ setup(
         'Development Status :: 4 - Beta',
         'Environment :: Plugins',
         'Intended Audience :: Developers',
-        'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
+        'License :: OSI Approved :: BSD',
         'Natural Language :: English',
         'Operating System :: OS Independent',
         'Programming Language :: Python',
@@ -138,7 +138,7 @@ setup(
         'Topic :: Office/Business',
     ],
     long_description=open('README.rst').read(),
-    license='GPL-3',
+    license='BSD',
     install_requires=requires,
     zip_safe=False,
     entry_points="""
