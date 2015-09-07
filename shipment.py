@@ -49,6 +49,15 @@ class ShipmentOut:
         depends=INTERNATIONAL_DEPENDS, states=INTERNATIONAL_STATES
     )
 
+    @classmethod
+    def view_attributes(cls):
+        return super(ShipmentOut, cls).view_attributes() + [
+            ('//page[@id="dhl_de"]', 'states', {
+                'invisible':  ~Bool(Eval('is_dhl_de_shipping'))
+            }), ('//group[@id="dhl_de_international"]', 'states', {
+                'invisible':  ~Bool(Eval('is_international_shipping'))
+            })]
+
     def get_is_dhl_de_shipping(self, name):
         """
         Ascertains if the shipping is done using DHL (DE)
@@ -60,12 +69,10 @@ class ShipmentOut:
         """
         Show/Hide dhl de Tab in view on change of carrier
         """
-        res = super(ShipmentOut, self).on_change_carrier()
+        super(ShipmentOut, self).on_change_carrier()
 
-        res['is_dhl_de_shipping'] = self.carrier and \
-            self.carrier.carrier_cost_method == 'dhl_de'
-
-        return res
+        self.is_dhl_de_shipping = self.carrier and \
+            self.carrier.carrier_cost_method == 'dhl_de' or None
 
     def _get_weight_uom(self):
         """
@@ -386,3 +393,10 @@ class ShippingDHLDE(ModelView):
             'required': Bool(Eval('is_international_shipping'))
         }, depends=['is_international_shipping']
     )
+
+    @classmethod
+    def view_attributes(cls):
+        return super(ShippingDHLDE, cls).view_attributes() + [
+            ('//page[@id="international"]', 'states', {
+                'invisible':  ~Bool(Eval('is_international_shipping'))
+            })]

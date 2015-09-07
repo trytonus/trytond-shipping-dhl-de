@@ -2,9 +2,7 @@
 <data>
     <xpath expr="/form/field[@name='carrier_cost_method']" position="after">
         <newline/>
-        <group id='dhl_de_config' string="DHL Configuration"
-            states="{'invisible': Not(Eval('carrier_cost_method') == 'dhl_de')}"
-            colspan="4">
+        <group id='dhl_de_config' string="DHL Configuration" colspan="4">
           <label name="dhl_de_username"/>
           <field name="dhl_de_username"/>
           <label name="dhl_de_password"/>
