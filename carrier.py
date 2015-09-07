@@ -79,6 +79,13 @@ class Carrier:
         self._dhl_de_client = None
 
     @classmethod
+    def view_attributes(cls):
+        return super(Carrier, cls).view_attributes() + [
+            ('//page[@id="dhl_de_config"]', 'states', {
+                'invisible':  ~(Eval('carrier_cost_method') == 'dhl_de')
+            })]
+
+    @classmethod
     def __setup__(cls):
         super(Carrier, cls).__setup__()
         cls._error_messages.update({

@@ -110,6 +110,15 @@ class Sale:
         states=INTERNATIONAL_STATES, depends=INTERNATIONAL_DEPENDS
     )
 
+    @classmethod
+    def view_attributes(cls):
+        return super(Sale, cls).view_attributes() + [
+            ('//page[@id="dhl_de"]', 'states', {
+                'invisible':  ~Bool(Eval('is_dhl_de_shipping'))
+            }), ('//group[@id="dhl_de_international"]', 'states', {
+                'invisible':  ~Bool(Eval('is_international_shipping'))
+            })]
+
     @staticmethod
     def default_dhl_de_product_code():
         Config = Pool().get('sale.configuration')
@@ -171,12 +180,10 @@ class Sale:
         """
         Show/Hide dhl de Tab in view on change of carrier
         """
-        res = super(Sale, self).on_change_carrier()
+        super(Sale, self).on_change_carrier()
 
-        res['is_dhl_de_shipping'] = self.carrier and \
-            self.carrier.carrier_cost_method == 'dhl_de'
-
-        return res
+        self.is_dhl_de_shipping = self.carrier and \
+            self.carrier.carrier_cost_method == 'dhl_de' or None
 
     def _get_shipment_sale(self, Shipment, key):
         """
