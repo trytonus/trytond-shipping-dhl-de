@@ -73,6 +73,25 @@ class Carrier:
         ('production', 'Production'),
     ], 'Environment', states=STATES, depends=['carrier_cost_method'])
 
+    def _get_hide_currency(self):
+        """
+        Downstream implementation for carrier._get_hide_currency
+        """
+        if self.carrier_cost_method == 'dhl_de':
+            return False
+        return super(Carrier, self)._get_hide_currency()
+
+    def get_currency(self, name):
+        """
+        Downstream implementation for carrier.get_currency
+        """
+        if self.carrier_cost_method != 'dhl_de':
+            return super(Carrier, self).get_currency(name)
+
+        ModelData = Pool().get('ir.model.data')
+
+        return ModelData.get_id("currency", "eur")
+
     def __init__(self, *args, **kwargs):
         super(Carrier, self).__init__(*args, **kwargs)
         self._dhl_de_version = None
