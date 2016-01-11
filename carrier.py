@@ -81,7 +81,7 @@ class Carrier:
     @classmethod
     def view_attributes(cls):
         return super(Carrier, cls).view_attributes() + [
-            ('//page[@id="dhl_de_config"]', 'states', {
+            ('//group[@id="dhl_de_config"]', 'states', {
                 'invisible':  ~(Eval('carrier_cost_method') == 'dhl_de')
             })]
 
