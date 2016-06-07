@@ -321,7 +321,9 @@ class ShipmentOut:
                 tracking_number,
             ),
             'data': pdf_label.content,
-            'resource': '%s,%s' % (self.__name__, self.id)
+            'resource': '%s,%d' % (
+                self.tracking_number.__name__, self.tracking.id
+            )
         }])
         return tracking_number
 
